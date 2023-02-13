@@ -1,10 +1,11 @@
 #!/opt/puppetlabs/puppet/bin/ruby
 
-# Puppet Task to purge nodes
+# Puppet Task to interact with Puppet agent nodes
 # This can only be run against the Puppet Primary Server.
 
 # Parameters:
 #   * agent_certnames - A comma-separated list of agent certificate names.
+#   * action - The action passed into `puppet node`.
 
 # Original code by Nate McCurdy
 # https://github.com/natemccurdy/puppet-purge_node
@@ -22,8 +23,8 @@ if !File.exist?(bootstrap_cfg) || File.readlines(bootstrap_cfg).grep(%r{^[^#].+c
   exit 1
 end
 
-def purge_node(agent)
-  stdout, stderr, status = Open3.capture3('/opt/puppetlabs/puppet/bin/puppet', 'node', 'purge', agent)
+def node_action(agent, action)
+  stdout, stderr, status = Open3.capture3('/opt/puppetlabs/puppet/bin/puppet', 'node', action, agent)
   {
     stdout: stdout.strip,
     stderr: stderr.strip,
@@ -32,7 +33,9 @@ def purge_node(agent)
 end
 
 results = {}
+exit_codes = {}
 agents = ENV['PT_agent_certnames'].split(',')
+action = ENV['PT_action']
 
 agents.each do |agent|
   results[agent] = {}
@@ -42,10 +45,23 @@ agents.each do |agent|
     next
   end
 
-  output = purge_node(agent)
-  results[agent][:result] = output[:exit_code].zero? ? 'Node purged' : output
+  output = node_action(agent, action)
+  exit_codes[agent][:code] = output[:exit_code]
+  results[agent][:result] = 
+    unless output[:exit_code].zero? 
+      output
+    else
+      case action
+      when 'purge'
+        'Node Purged'
+      when 'deactivate'
+        'Node Deactivated'
+      else
+        "Node Status: #{output[:stdout]}"
+      end
+    end
 end
 
 puts results.to_json
 
-exit(results.values.all? { |v| v[:result] == 'Node purged' }) ? 0 : 1
+exit(exit_codes.values.all? { |v| v[:code] == 0 }) ? 0 : 1

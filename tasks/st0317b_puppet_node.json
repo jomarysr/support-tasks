@@ -1,11 +1,15 @@
 {
-  "description": "Purge Puppet agent nodes",
+  "description": "Interact with Puppet agent nodes",
   "input_method": "environment",
   "supports_noop": false,
   "parameters": {
     "agent_certnames": {
       "description": "A comma-separated list of agent certificate names",
       "type": "Pattern[/^([A-Za-z0-9._-]+,?)+$/]"
+    },
+    "action": {
+      "description": "What action to take against the node(s)",
+      "type": "Enum[deactivate, purge, status]"
     }
   }
 }
