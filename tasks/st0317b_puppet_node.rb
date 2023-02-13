@@ -39,6 +39,7 @@ action = ENV['PT_action']
 
 agents.each do |agent|
   results[agent] = {}
+  exit_codes[agent] = {}
 
   if agent == Puppet[:certname]
     results[agent][:result] = 'Refusing to purge the Puppet Primary Server'
